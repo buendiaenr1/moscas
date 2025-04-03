@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Laser and Flies Simulation</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+</head>
+<body>
+<script>
+let flies = [];
+let lasers = [];
+let stains = [];
+const initialFliesCount = 50;
+const flySpeed = 1;
+const laserRange = 5;
+
+function setup() {
+  createCanvas(400, 400);
+  setupLaser();
+  setupFlies();
+}
+
+function draw() {
+  background(220); // Fondo claro para que las imágenes sean visibles
+  moveFlies();
+  checkLaser();
+  drawSprites();
+}
+
+function setupLaser() {
+  lasers.push({
+    x: width / 2,
+    y: height / 2,
+    color: color(255, 0, 0),
+    size: 10,
+    range: laserRange
+  });
+}
+
+function setupFlies() {
+  for (let i = 0; i < initialFliesCount; i++) {
+    flies.push({
+      x: random(width),
+      y: random(height),
+      color: color(0),
+      size: 8,
+      heading: random(TWO_PI),
+      nextStainTime: random(30, 150) // Intervalo aleatorio para tirar basura
+    });
+  }
+}
+
+function moveFlies() {
+  for (let fly of flies) {
+    let angleChange = random(-0.17, 0.17);
+    fly.heading += angleChange;
+    fly.x += cos(fly.heading) * flySpeed;
+    fly.y += sin(fly.heading) * flySpeed;
+
+    // Mantener las moscas dentro de los límites
+    if (fly.x > width - 5 || fly.x < 5) fly.heading = PI - fly.heading;
+    if (fly.y > height - 5 || fly.y < 5) fly.heading = -fly.heading;
+
+    // Reducir el contador para tirar basura
+    fly.nextStainTime -= 1;
+    if (fly.nextStainTime <= 0) {
+      stains.push({
+        x: fly.x,
+        y: fly.y,
+        size: random(5, 10),
+        color: color(random(255), random(255), random(255)) // Color aleatorio para la basura
+      });
+      fly.nextStainTime = random(30, 150); // Reiniciar el intervalo
+    }
+  }
+}
+
+function checkLaser() {
+  for (let laser of lasers) {
+    for (let i = flies.length - 1; i >= 0; i--) {
+      let fly = flies[i];
+      let d = dist(laser.x, laser.y, fly.x, fly.y);
+
+      // Simulación de disparo de láser
+      if (d <= 80) { // Rango del láser ajustado a 80
+        simulateLaserShot(laser, fly, d);
+      }
+
+      // Probabilidad de muerte según la distancia al láser
+      if (d <= 50) {
+        if (random() < 0.6) { // 60% de probabilidad a un rango de 50
+          flies.splice(i, 1);
+        }
+      } else if (d <= 60) {
+        if (random() < 0.2) { // 20% de probabilidad a un rango de 60
+          flies.splice(i, 1);
+        }
+      } else if (d <= 80) { // Ajuste del rango a 80
+        if (random() < 0.05) { // 5% de probabilidad a un rango de 80
+          flies.splice(i, 1);
+        }
+      }
+    }
+  }
+}
+
+function simulateLaserShot(laser, fly, distance) {
+  // Calcular el ángulo entre el láser y la mosca
+  let angle = atan2(fly.y - laser.y, fly.x - laser.x);
+
+  // Dibujar una línea pequeña que se acerca a la mosca
+  let step = map(distance, 0, 80, 0, 50); // Longitud del rayo depende de la distancia (ajustado a 80)
+  let laserEndX = laser.x + cos(angle) * step;
+  let laserEndY = laser.y + sin(angle) * step;
+
+  stroke(255, 0, 0); // Color rojo para el rayo
+  strokeWeight(2);
+  line(laser.x, laser.y, laserEndX, laserEndY);
+}
+
+function drawLaser(laser) {
+  fill(laser.color);
+  ellipse(laser.x, laser.y, laser.size, laser.size);
+
+  // Dibujar círculos para los rangos de probabilidad
+  noFill();
+  stroke(255, 0, 0, 100); // Rojo transparente para el rango de 50
+  circle(laser.x, laser.y, 50 * 2);
+
+  stroke(255, 165, 0, 100); // Naranja transparente para el rango de 60
+  circle(laser.x, laser.y, 60 * 2);
+
+  stroke(0, 0, 255, 100); // Azul transparente para el rango de 80
+  circle(laser.x, laser.y, 80 * 2);
+}
+
+function drawFly(fly) {
+  fill(fly.color);
+  ellipse(fly.x, fly.y, fly.size, fly.size);
+}
+
+function drawStains() {
+  for (let stain of stains) {
+    fill(stain.color); // Usar el color aleatorio de la mancha
+    noStroke();
+    ellipse(stain.x, stain.y, stain.size, stain.size);
+  }
+}
+
+function drawSprites() {
+  drawStains(); // Dibujar las manchas primero para que no cubran a las moscas
+  for (let laser of lasers) {
+    drawLaser(laser);
+  }
+  for (let fly of flies) {
+    drawFly(fly);
+  }
+}
+</script>
+</body>
+</html>
